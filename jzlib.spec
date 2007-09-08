@@ -3,7 +3,7 @@
 
 Name:           jzlib
 Version:        1.0.7
-Release:        %mkrel 3
+Release:        %mkrel 4
 Epoch:          0
 Summary:        JZlib re-implementation of zlib in pure Java
 
