@@ -3,7 +3,7 @@
 
 Name:           jzlib
 Version:        1.0.7
-Release:        %mkrel 4
+Release:        %mkrel 5
 Epoch:          0
 Summary:        JZlib re-implementation of zlib in pure Java
 
@@ -17,8 +17,6 @@ BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root
 #Vendor:         JPackage Project
 
 %if %{gcj_support}
-Requires(post): java-gcj-compat
-Requires(postun): java-gcj-compat
 BuildRequires:  java-gcj-compat-devel
 %else
 BuildArch:      noarch
