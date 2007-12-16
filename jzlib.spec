@@ -3,7 +3,7 @@
 
 Name:           jzlib
 Version:        1.0.7
-Release:        %mkrel 5
+Release:        %mkrel 6
 Epoch:          0
 Summary:        JZlib re-implementation of zlib in pure Java
 
@@ -21,7 +21,7 @@ BuildRequires:  java-gcj-compat-devel
 %else
 BuildArch:      noarch
 %endif
-BuildRequires:  jpackage-utils >= 0:1.5.31, ant >= 0:1.5.4
+BuildRequires:  java-rpmbuild >= 0:1.5.31, ant >= 0:1.5.4
 
 %description
 The zlib is designed to be a free, general-purpose, legally unencumbered 
