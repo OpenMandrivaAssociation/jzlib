@@ -12,6 +12,7 @@ License:        BSD-style
 URL:            http://www.jcraft.com/jzlib/
 Source0:        http://www.jcraft.com/jzlib/jzlib-%{version}.tar.bz2
 Source1:        %{name}_build.xml
+BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root
 #Distribution:   JPackage
 #Vendor:         JPackage Project
 
