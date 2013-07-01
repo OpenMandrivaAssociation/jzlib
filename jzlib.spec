@@ -1,4 +1,4 @@
-Summary:        JZlib re-implementation of zlib in pure Java
+Summary:        Re-implementation of zlib in pure Java
 Name:           jzlib
 Version:        1.1.1
 Release:        1
