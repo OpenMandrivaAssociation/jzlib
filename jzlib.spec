@@ -1,7 +1,7 @@
 Summary:        Re-implementation of zlib in pure Java
 Name:           jzlib
 Version:        1.1.1
-Release:        4
+Release:        5
 Group:          Development/Java
 License:        BSD-style
 Url:            http://www.jcraft.com/jzlib/
