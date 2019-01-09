@@ -1,7 +1,7 @@
 %{?_javapackages_macros:%_javapackages_macros}
 Name:           jzlib
-Version:        1.1.2
-Release:        2.1%{?dist}
+Version:        1.1.3
+Release:        1.1%{?dist}
 Epoch:          0
 Summary:        Re-implementation of zlib in pure Java
 License:        BSD
