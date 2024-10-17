@@ -5,7 +5,7 @@ Release:        1.1%{?dist}
 Epoch:          0
 Summary:        Re-implementation of zlib in pure Java
 License:        BSD
-URL:            http://www.jcraft.com/jzlib/
+URL:            https://www.jcraft.com/jzlib/
 BuildArch:      noarch
 Source0:        https://github.com/ymnk/jzlib/archive/%{version}.tar.gz
 
