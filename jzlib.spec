@@ -1,150 +1,112 @@
-%{?_javapackages_macros:%_javapackages_macros}
-Name:           jzlib
-Version:        1.1.3
-Release:        1.1%{?dist}
-Epoch:          0
-Summary:        Re-implementation of zlib in pure Java
-License:        BSD
-URL:            https://www.jcraft.com/jzlib/
-BuildArch:      noarch
-Source0:        https://github.com/ymnk/jzlib/archive/%{version}.tar.gz
+Name:		jzlib
+Version:	1.1.3
+Release:	2
+Summary:	Re-implementation of zlib in pure Java
+Group:		Development/Java
+License:	BSD
+URL:		https://github.com/ymnk/jzlib
+Source0:	https://github.com/ymnk/jzlib/archive/refs/tags/%{version}.tar.gz#/%{version}.tar.gz
 
-BuildRequires:  maven-local
+BuildArch:	noarch
+BuildRequires:	python
+# Literal, so the first rpmbuild -bs records them before sysjar is installed.
+BuildRequires:	maven
+BuildRequires:	java-current-devel
+BuildSystem:	maven
+BuildOption(install):	--file-name jzlib
+
+Obsoletes:	%{name}-javadoc < %{version}-%{release}
+Obsoletes:	%{name}-demo < %{version}-%{release}
 
 %description
-The zlib is designed to be a free, general-purpose, legally unencumbered 
--- that is, not covered by any patents -- loss-less data-compression 
-library for use on virtually any computer hardware and operating system. 
-The zlib was written by Jean-loup Gailly (compression) and Mark Adler 
-(decompression). 
-
-%package        javadoc
-Summary:        API documentation for %{name}
-
-%description    javadoc
-%{summary}.
-
-%package        demo
-Summary:        Examples for %{name}
-Requires:       %{name} = %{epoch}:%{version}-%{release}
-
-%description    demo
-%{summary}.
+JZlib is a pure Java reimplementation of zlib, including gzip
+streams. 1.1.3 is the last upstream release. The 0.0 releases were
+LGPL. This release is the BSD license. The Java module is
+com.jcraft.jzlib. The examples are shipped as documentation and are
+not run as tests.
 
 %prep
-%setup -q
-%mvn_file : %{name}
+%autosetup -n jzlib-%{version}
+# Compiler plugin 2.0 asks for source and target 1.5 and for optimize.
+# The current JDK rejects source 1.5. Compiler plugin 3.x rejects
+# optimize. The version stays, so the plugin and this configuration
+# are kept and the version is rewritten to the installed plugin.
+python - <<'PY'
+import xml.etree.ElementTree as ET
+from pathlib import Path
 
-%build
-%mvn_build
+ET.register_namespace("", "http://maven.apache.org/POM/4.0.0")
+ET.register_namespace("xsi", "http://www.w3.org/2001/XMLSchema-instance")
 
-%install
-%mvn_install
+def local(tag):
+    return tag.rsplit("}", 1)[-1]
 
-# examples
-install -dm 755 %{buildroot}%{_datadir}/%{name}
-cp -pr example/* %{buildroot}%{_datadir}/%{name}
+path = Path("pom.xml")
+tree = ET.parse(path)
+root = tree.getroot()
+compiler = None
+for parent in root.iter():
+    for child in list(parent):
+        if local(child.tag) != "plugin":
+            continue
+        artifact = ""
+        for item in child:
+            if local(item.tag) == "artifactId":
+                artifact = (item.text or "").strip()
+        if artifact == "maven-compiler-plugin":
+            compiler = child
+if compiler is None:
+    raise SystemExit("compiler plugin missing")
+plugin_version = ""
+for item in compiler:
+    if local(item.tag) == "version":
+        plugin_version = (item.text or "").strip()
+optimize = source = target = None
+for item in compiler.iter():
+    name = local(item.tag)
+    if name == "optimize":
+        optimize = item
+    elif name == "source":
+        source = item
+    elif name == "target":
+        target = item
+    elif name == "release":
+        raise SystemExit("compiler release present")
+if optimize is None or source is None or target is None:
+    raise SystemExit("compiler fields missing")
+if plugin_version != "2.0" or (source.text or "").strip() != "1.5":
+    raise SystemExit("unexpected compiler pin")
+removed = False
+for parent in compiler.iter():
+    if optimize in list(parent):
+        parent.remove(optimize)
+        removed = True
+        break
+if not removed:
+    raise SystemExit("optimize parent missing")
+source.text = "1.8"
+target.text = "1.8"
+tree.write(path, encoding="UTF-8", xml_declaration=True)
+text = path.read_text(encoding="utf-8")
+if "<optimize>" in text or ">1.5<" in text or ">1.8<" not in text:
+    raise SystemExit("rewrite failed")
+if "<release>" in text:
+    raise SystemExit("release was added")
+PY
+
+%build -a
+cat > target/module-info.java << 'EOF'
+module com.jcraft.jzlib {
+    exports com.jcraft.jzlib;
+}
+EOF
+javac --release 9 \
+	--patch-module com.jcraft.jzlib=target/classes \
+	-d target/classes \
+	target/module-info.java
+test -s target/classes/module-info.class
+jar uf target/jzlib-%{version}.jar -C target/classes module-info.class
+java --module-path target/jzlib-%{version}.jar --describe-module com.jcraft.jzlib | grep -q '^com.jcraft.jzlib'
 
 %files -f .mfiles
-%doc LICENSE.txt
-
-%files javadoc -f .mfiles-javadoc
-%doc LICENSE.txt
-
-%files demo
-%doc %{_datadir}/%{name}
-
-%changelog
-* Sat Aug 03 2013 Fedora Release Engineering <rel-eng@lists.fedoraproject.org> - 0:1.1.2-2
-- Rebuilt for https://fedoraproject.org/wiki/Fedora_20_Mass_Rebuild
-
-* Sun Jul 14 2013 Mat Booth <fedora@matbooth.co.uk> 0:1.1.2-1
-- Update to latest upstream, fixes rhbz #980461
-- Fix bogus date in changelog
-
-* Fri Jun 14 2013 Mikolaj Izdebski <mizdebsk@redhat.com> - 0:1.1.1-4
-- Update to current packaging guidelines
-
-* Thu Feb 14 2013 Fedora Release Engineering <rel-eng@lists.fedoraproject.org> - 0:1.1.1-3
-- Rebuilt for https://fedoraproject.org/wiki/Fedora_19_Mass_Rebuild
-
-* Wed Feb 06 2013 Java SIG <java-devel@lists.fedoraproject.org> - 0:1.1.1-2
-- Update for https://fedoraproject.org/wiki/Fedora_19_Maven_Rebuild
-- Replace maven BuildRequires with maven-local
-
-* Mon Jan 7 2013 Alexander Kurtakov <akurtako@redhat.com> 0:1.1.1-1
-- Update to latest upstream.
-
-* Tue Oct 23 2012 Mat Booth <fedora@matbooth.co.uk> 0:1.1.0-3
-- Add maven pom and depmap rhbz #806572.
-
-* Thu Jul 19 2012 Fedora Release Engineering <rel-eng@lists.fedoraproject.org> - 0:1.1.0-2
-- Rebuilt for https://fedoraproject.org/wiki/Fedora_18_Mass_Rebuild
-
-* Fri Jan 13 2012 Alexander Kurtakov <akurtako@redhat.com> 0:1.1.0-1
-- Update to upstream 1.1.0 release.
-
-* Fri Jan 13 2012 Fedora Release Engineering <rel-eng@lists.fedoraproject.org> - 0:1.0.7-10
-- Rebuilt for https://fedoraproject.org/wiki/Fedora_17_Mass_Rebuild
-
-* Wed Feb 09 2011 Fedora Release Engineering <rel-eng@lists.fedoraproject.org> - 0:1.0.7-9
-- Rebuilt for https://fedoraproject.org/wiki/Fedora_15_Mass_Rebuild
-
-* Thu Nov 4 2010 Alexander Kurtakov <akurtako@redhat.com> 0:1.0.7-8
-- Fix merge review comments bug#225956.
-
-* Wed Apr 7 2010 Alexander Kurtakov <akurtako@redhat.com> 0:1.0.7-7.4
-- Drop gcj_support.
-
-* Fri Jul 24 2009 Fedora Release Engineering <rel-eng@lists.fedoraproject.org> - 0:1.0.7-7.3
-- Rebuilt for https://fedoraproject.org/wiki/Fedora_12_Mass_Rebuild
-
-* Wed Feb 25 2009 Fedora Release Engineering <rel-eng@lists.fedoraproject.org> - 0:1.0.7-6.3
-- Rebuilt for https://fedoraproject.org/wiki/Fedora_11_Mass_Rebuild
-
-* Wed Jul  9 2008 Tom "spot" Callaway <tcallawa@redhat.com> - 0:1.0.7-5.3
-- drop repotag
-
-* Thu May 29 2008 Tom "spot" Callaway <tcallawa@redhat.com> - 0:1.0.7-5jpp.2
-- fix license tag
-
-* Tue Feb 19 2008 Fedora Release Engineering <rel-eng@fedoraproject.org> - 0:1.0.7-5jpp.1
-- Autorebuild for GCC 4.3
-
-* Tue Aug 08 2006 Vivek Lakshmanan <vivekl@redhat.com> - 0:1.0.7-4jpp.1
-- Re-sync with latest from JPP.
-- Partially adopt new naming convention.
-
-* Sat Jul 22 2006 Vivek Lakshmanan <vivekl@redhat.com> - 0:1.0.7-3jpp_2fc
-- Rebuild.
-
-* Sat Jul 22 2006 Vivek Lakshmanan <vivekl@redhat.com> - 0:1.0.7-3jpp_1fc
-- Merge with latest version from JPP.
-
-* Sat Jul 22 2006 Jakub Jelinek <jakub@redhat.com> - 0:1.0.5-2jpp_4fc
-- Rebuilt
-
-* Wed Jul 12 2006 Jesse Keating <jkeating@redhat.com> - 0:1.0.5-2jpp_3fc
-- rebuild
-
-* Mon Mar  6 2006 Jeremy Katz <katzj@redhat.com> - 0:1.0.5-2jpp_2fc
-- stop the scriptlet spew
-
-* Fri Dec 09 2005 Jesse Keating <jkeating@redhat.com>
-- rebuilt
-
-* Fri Mar 18 2005 Andrew Overholt <overholt@redhat.com> 1.0.5-2jpp_1fc
-- Build into Fedora.
-- Remove Distribution and Vendor tags.
-
-* Tue Oct 19 2004 David Walluck <david@jpackage.org> 0:1.0.5-2jpp
-- rebuild with jdk 1.4.2
-
-* Tue Oct 19 2004 David Walluck <david@jpackage.org> 0:1.0.5-1jpp
-- 0.1.5
-
-* Mon Aug 23 2004 Randy Watler <rwatler at finali.com> - 0:1.0.3-2jpp
-- Rebuild with ant-1.6.2
-
-* Wed Jan 14 2004 Ralph Apel <r.apel@r-apel.de> - 0:1.0.3-1jpp
-- First build.
+%doc LICENSE.txt README ChangeLog example
