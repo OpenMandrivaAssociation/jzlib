@@ -1,2 +1,4 @@
-sources:
+removed_sources:
   1.1.3.tar.gz: ed9378ef9b98166ff5570f8159cdaed59c0e4e64
+sources:
+  jzlib-1.1.5.tar.gz: 53aa603b8d3e2a6c3f017b76d1167d2eb2da5bc3
